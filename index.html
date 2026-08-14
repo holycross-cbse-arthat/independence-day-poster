@@ -191,7 +191,7 @@
   };
 
   // Load Template Image
-  templateImage.src = 'template.png';
+  templateImage.src = 'template.png?v=' + Date.now();
   templateImage.onload = () => {
     isTemplateLoaded = true;
     renderPoster();
