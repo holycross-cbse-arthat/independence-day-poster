@@ -27,7 +27,7 @@
     }
 
     .container {
-      max-width: 540px;
+      max-width: 500px;
       width: 100%;
       display: flex;
       flex-direction: column;
@@ -35,7 +35,7 @@
       align-items: center;
     }
 
-    /* 1. Top Canvas Preview Area */
+    /* Top Canvas Preview Area */
     .preview-container {
       display: flex;
       flex-direction: column;
@@ -51,16 +51,22 @@
       border-radius: 16px;
       box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
       background-color: #ffffff;
-      touch-action: none; /* Allows direct touch dragging on mobile */
+      touch-action: none; /* Prevents page scrolling while gesturing on the canvas */
+      cursor: grab;
+    }
+
+    canvas:active {
+      cursor: grabbing;
     }
 
     .hint-text {
-      font-size: 0.75rem;
-      color: #94a3b8;
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: #64748b;
       text-align: center;
     }
 
-    /* Card Panels for Controls */
+    /* Form Card */
     .card {
       background: #ffffff;
       width: 100%;
@@ -102,26 +108,6 @@
       background: #ffffff;
     }
 
-    /* Slider Grid */
-    .sliders-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-    }
-
-    @media (max-width: 400px) {
-      .sliders-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    input[type="range"] {
-      width: 100%;
-      height: 6px;
-      accent-color: #ea580c;
-      cursor: pointer;
-    }
-
     /* Download Button */
     .btn-download {
       background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
@@ -135,6 +121,7 @@
       box-shadow: 0 4px 12px rgba(234, 88, 12, 0.35);
       transition: transform 0.1s ease, box-shadow 0.2s ease;
       width: 100%;
+      margin-top: 4px;
     }
 
     .btn-download:active {
@@ -146,13 +133,13 @@
 
 <div class="container">
 
-  <!-- 1. POSTER PREVIEW PLACED FIRST -->
+  <!-- 1. POSTER CANVAS (Direct Touch Area) -->
   <div class="preview-container">
     <canvas id="posterCanvas" width="1080" height="1080"></canvas>
-    <span class="hint-text">Tip: You can drag/pan the photo directly on screen with your finger.</span>
+    <span class="hint-text">👆 1 finger to drag • 2 fingers to pinch-zoom & rotate</span>
   </div>
 
-  <!-- 2. INPUTS SECTION -->
+  <!-- 2. INPUTS & DOWNLOAD -->
   <div class="card">
     <div class="form-group">
       <label for="photoInput">1. Upload Photo (ഫോട്ടോ ചേർക്കുക)</label>
@@ -168,31 +155,6 @@
       <label for="schoolInput">3. Class / School Name (ക്ലാസ്സ് / സ്കൂൾ)</label>
       <input type="text" id="schoolInput" placeholder="Enter Class & School" value="Holy Cross CBSE School">
     </div>
-  </div>
-
-  <!-- 3. SLIDERS & DOWNLOAD -->
-  <div class="card">
-    <div class="sliders-grid">
-      <div class="form-group">
-        <label for="zoomSlider">Zoom</label>
-        <input type="range" id="zoomSlider" min="50" max="250" value="100">
-      </div>
-
-      <div class="form-group">
-        <label for="rotateSlider">Rotate</label>
-        <input type="range" id="rotateSlider" min="-180" max="180" value="0">
-      </div>
-
-      <div class="form-group">
-        <label for="panXSlider">Pan Left / Right</label>
-        <input type="range" id="panXSlider" min="-250" max="250" value="0">
-      </div>
-
-      <div class="form-group">
-        <label for="panYSlider">Pan Up / Down</label>
-        <input type="range" id="panYSlider" min="-250" max="250" value="0">
-      </div>
-    </div>
 
     <button class="btn-download" id="downloadBtn">Download Poster (HD)</button>
   </div>
@@ -202,28 +164,33 @@
 <script>
   /**
    * Independence Day Instagram Poster Generator (1080x1080)
+   * With Native Touch Gestures (Pinch-to-Zoom, Two-Finger Rotate, Pan)
    */
 
   const CANVAS_SIZE = 1080;
   const canvas = document.getElementById('posterCanvas');
   const ctx = canvas.getContext('2d');
 
-  // DOM Elements
+  // Form Elements
   const photoInput = document.getElementById('photoInput');
   const nameInput = document.getElementById('nameInput');
   const schoolInput = document.getElementById('schoolInput');
-  const zoomSlider = document.getElementById('zoomSlider');
-  const rotateSlider = document.getElementById('rotateSlider');
-  const panXSlider = document.getElementById('panXSlider');
-  const panYSlider = document.getElementById('panYSlider');
   const downloadBtn = document.getElementById('downloadBtn');
 
-  // State
+  // Poster State
   let templateImage = new Image();
   let userPhoto = null;
   let isTemplateLoaded = false;
 
-  // Set default template image path
+  // Photo Transform State (Controlled directly via gestures)
+  let transform = {
+    zoom: 1.0,
+    rotateRad: 0,
+    panX: 0,
+    panY: 0
+  };
+
+  // Load Template Image
   templateImage.src = 'template.png';
   templateImage.onload = () => {
     isTemplateLoaded = true;
@@ -234,18 +201,17 @@
     renderPoster();
   };
 
-  // --- MAIN RENDER FUNCTION ---
+  // --- RENDERING ENGINE ---
   function renderPoster() {
     canvas.width = CANVAS_SIZE;
     canvas.height = CANVAS_SIZE;
 
     ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
 
-    // 1. Draw Base Template Image
+    // 1. Base Template
     if (isTemplateLoaded && templateImage.naturalWidth !== 0) {
       ctx.drawImage(templateImage, 0, 0, CANVAS_SIZE, CANVAS_SIZE);
     } else {
-      // Soft gradient fallback
       const bgGrad = ctx.createLinearGradient(0, 0, 0, CANVAS_SIZE);
       bgGrad.addColorStop(0, '#fde047');
       bgGrad.addColorStop(1, '#ea580c');
@@ -253,35 +219,30 @@
       ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
     }
 
-    // 2. Circular Photo Placement Coordinates
+    // 2. Photo Circular Area Coordinates
     const circleX = 860;
     const circleY = 400;
     const radius = 170;
 
-    // Draw user photo with mask, zoom, rotate, and panning
+    // Draw user photo with active transform state
     ctx.save();
     ctx.beginPath();
     ctx.arc(circleX, circleY, radius, 0, Math.PI * 2);
-    ctx.clip(); // Mask inside circle
+    ctx.clip();
 
     if (userPhoto) {
-      const zoom = parseFloat(zoomSlider ? zoomSlider.value : 100) / 100;
-      const rotate = ((parseFloat(rotateSlider ? rotateSlider.value : 0)) * Math.PI) / 180;
-      const panX = parseFloat(panXSlider ? panXSlider.value : 0);
-      const panY = parseFloat(panYSlider ? panYSlider.value : 0);
-
       ctx.translate(circleX, circleY);
-      ctx.rotate(rotate);
-      ctx.translate(panX, panY);
+      ctx.rotate(transform.rotateRad);
+      ctx.translate(transform.panX, transform.panY);
 
       const baseScale = Math.max((radius * 2) / userPhoto.width, (radius * 2) / userPhoto.height);
-      const scale = baseScale * zoom;
+      const scale = baseScale * transform.zoom;
       const drawW = userPhoto.width * scale;
       const drawH = userPhoto.height * scale;
 
       ctx.drawImage(userPhoto, -drawW / 2, -drawH / 2, drawW, drawH);
     } else {
-      // Default placeholder silhouette
+      // Default Avatar Silhouette
       ctx.fillStyle = '#cbd5e1';
       ctx.fillRect(circleX - radius, circleY - radius, radius * 2, radius * 2);
       ctx.fillStyle = '#ffffff';
@@ -294,11 +255,7 @@
     }
     ctx.restore();
 
-    // 3. Draw Student Name and School Details Card
-    const studentName = nameInput && nameInput.value.trim() ? nameInput.value.trim() : 'Student Name';
-    const schoolDetails = schoolInput && schoolInput.value.trim() ? schoolInput.value.trim() : 'Holy Cross CBSE School';
-
-    // Info Card Box
+    // 3. Info Card Box
     const boxX = 660;
     const boxY = 600;
     const boxW = 400;
@@ -325,102 +282,182 @@
     ctx.fill();
     ctx.restore();
 
-    // Text inside Box
+    // Typography
     ctx.textAlign = 'center';
     const textCenterX = boxX + (boxW / 2);
 
     // Student Name
     ctx.fillStyle = '#0f172a';
     ctx.font = 'bold 28px "Poppins", "Anek Malayalam", sans-serif';
-    ctx.fillText(studentName, textCenterX, boxY + 40);
+    ctx.fillText(nameInput.value.trim() || 'Student Name', textCenterX, boxY + 40);
 
     // Class / School Name
-    ctx.fillStyle = '#047857'; // Forest Green
+    ctx.fillStyle = '#047857';
     ctx.font = '600 20px "Poppins", "Anek Malayalam", sans-serif';
-    ctx.fillText(schoolDetails, textCenterX, boxY + 75);
+    ctx.fillText(schoolInput.value.trim() || 'Holy Cross CBSE School', textCenterX, boxY + 75);
   }
 
-  // --- EVENT LISTENERS ---
-
-  // Photo Upload
-  if (photoInput) {
-    photoInput.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          userPhoto = new Image();
-          userPhoto.onload = renderPoster;
-          userPhoto.src = event.target.result;
+  // --- PHOTO UPLOAD ---
+  photoInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        userPhoto = new Image();
+        userPhoto.onload = () => {
+          // Reset gestures on new photo
+          transform = { zoom: 1.0, rotateRad: 0, panX: 0, panY: 0 };
+          renderPoster();
         };
-        reader.readAsDataURL(file);
-      }
-    });
-  }
-
-  // Live inputs update
-  [nameInput, schoolInput, zoomSlider, rotateSlider, panXSlider, panYSlider].forEach((elem) => {
-    if (elem) elem.addEventListener('input', renderPoster);
+        userPhoto.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
   });
 
-  // Fonts ready listener
+  // Text changes live update
+  nameInput.addEventListener('input', renderPoster);
+  schoolInput.addEventListener('input', renderPoster);
+
   if (document.fonts) {
     document.fonts.ready.then(renderPoster);
   }
 
-  // Download Action
-  if (downloadBtn) {
-    downloadBtn.addEventListener('click', () => {
-      const link = document.createElement('a');
-      const filename = `${(nameInput && nameInput.value.trim()) || 'student'}-independence-day.png`;
-      link.download = filename;
-      link.href = canvas.toDataURL('image/png', 1.0);
-      link.click();
-    });
-  }
+  // Download Trigger
+  downloadBtn.addEventListener('click', () => {
+    const link = document.createElement('a');
+    link.download = `${nameInput.value.trim() || 'student'}-independence-day.png`;
+    link.href = canvas.toDataURL('image/png', 1.0);
+    link.click();
+  });
 
-  // --- MOBILE TOUCH / MOUSE DRAG SUPPORT ---
+  // ==========================================
+  // --- TOUCH GESTURE ENGINE (PINCH/ROTATE/PAN) ---
+  // ==========================================
   let isDragging = false;
-  let startX = 0;
-  let startY = 0;
+  let lastTouchX = 0;
+  let lastTouchY = 0;
+  let initialPinchDist = null;
+  let initialPinchAngle = null;
+  let startZoom = 1.0;
+  let startRotate = 0;
 
-  function handleStart(e) {
+  function getTouchDistance(t1, t2) {
+    const dx = t1.clientX - t2.clientX;
+    const dy = t1.clientY - t2.clientY;
+    return Math.hypot(dx, dy);
+  }
+
+  function getTouchAngle(t1, t2) {
+    return Math.atan2(t2.clientY - t1.clientY, t2.clientX - t1.clientX);
+  }
+
+  // Canvas Display Scale Factor (Canvas Pixel vs Screen Pixel)
+  function getCanvasScale() {
+    const rect = canvas.getBoundingClientRect();
+    return CANVAS_SIZE / rect.width;
+  }
+
+  canvas.addEventListener('touchstart', (e) => {
     if (!userPhoto) return;
-    isDragging = true;
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    startX = clientX - parseFloat(panXSlider.value);
-    startY = clientY - parseFloat(panYSlider.value);
-  }
+    if (e.touches.length === 1) {
+      isDragging = true;
+      lastTouchX = e.touches[0].clientX;
+      lastTouchY = e.touches[0].clientY;
+    } else if (e.touches.length === 2) {
+      isDragging = false;
+      initialPinchDist = getTouchDistance(e.touches[0], e.touches[1]);
+      initialPinchAngle = getTouchAngle(e.touches[0], e.touches[1]);
+      startZoom = transform.zoom;
+      startRotate = transform.rotateRad;
+    }
+  }, { passive: false });
 
-  function handleMove(e) {
-    if (!isDragging) return;
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    
-    let newX = clientX - startX;
-    let newY = clientY - startY;
+  window.addEventListener('touchmove', (e) => {
+    if (!userPhoto) return;
 
-    // Clamp range
-    newX = Math.max(-250, Math.min(250, newX));
-    newY = Math.max(-250, Math.min(250, newY));
+    if (e.touches.length === 1 && isDragging) {
+      const scale = getCanvasScale();
+      const dx = (e.touches[0].clientX - lastTouchX) * scale;
+      const dy = (e.touches[0].clientY - lastTouchY) * scale;
 
-    panXSlider.value = newX;
-    panYSlider.value = newY;
+      // Project pan movement relative to current rotation
+      const cos = Math.cos(-transform.rotateRad);
+      const sin = Math.sin(-transform.rotateRad);
+      transform.panX += (dx * cos - dy * sin) / transform.zoom;
+      transform.panY += (dx * sin + dy * cos) / transform.zoom;
+
+      lastTouchX = e.touches[0].clientX;
+      lastTouchY = e.touches[0].clientY;
+      renderPoster();
+      e.preventDefault();
+    } else if (e.touches.length === 2 && initialPinchDist) {
+      // 1. Handle Pinch-to-Zoom
+      const currentDist = getTouchDistance(e.touches[0], e.touches[1]);
+      const scaleFactor = currentDist / initialPinchDist;
+      transform.zoom = Math.max(0.4, Math.min(3.5, startZoom * scaleFactor));
+
+      // 2. Handle Two-Finger Rotation
+      const currentAngle = getTouchAngle(e.touches[0], e.touches[1]);
+      transform.rotateRad = startRotate + (currentAngle - initialPinchAngle);
+
+      renderPoster();
+      e.preventDefault();
+    }
+  }, { passive: false });
+
+  window.addEventListener('touchend', (e) => {
+    if (e.touches.length === 0) {
+      isDragging = false;
+      initialPinchDist = null;
+      initialPinchAngle = null;
+    } else if (e.touches.length === 1) {
+      // Transition from 2 fingers back to 1
+      isDragging = true;
+      lastTouchX = e.touches[0].clientX;
+      lastTouchY = e.touches[0].clientY;
+      initialPinchDist = null;
+      initialPinchAngle = null;
+    }
+  });
+
+  // --- DESKTOP MOUSE SUPPORT (DRAG & SCROLL-ZOOM) ---
+  let isMouseDown = false;
+  let lastMouseX = 0;
+  let lastMouseY = 0;
+
+  canvas.addEventListener('mousedown', (e) => {
+    if (!userPhoto) return;
+    isMouseDown = true;
+    lastMouseX = e.clientX;
+    lastMouseY = e.clientY;
+  });
+
+  window.addEventListener('mousemove', (e) => {
+    if (!isMouseDown || !userPhoto) return;
+    const scale = getCanvasScale();
+    const dx = (e.clientX - lastMouseX) * scale;
+    const dy = (e.clientY - lastMouseY) * scale;
+
+    const cos = Math.cos(-transform.rotateRad);
+    const sin = Math.sin(-transform.rotateRad);
+    transform.panX += (dx * cos - dy * sin) / transform.zoom;
+    transform.panY += (dx * sin + dy * cos) / transform.zoom;
+
+    lastMouseX = e.clientX;
+    lastMouseY = e.clientY;
     renderPoster();
-  }
+  });
 
-  function handleEnd() {
-    isDragging = false;
-  }
+  window.addEventListener('mouseup', () => { isMouseDown = false; });
 
-  canvas.addEventListener('mousedown', handleStart);
-  window.addEventListener('mousemove', handleMove);
-  window.addEventListener('mouseup', handleEnd);
-
-  canvas.addEventListener('touchstart', handleStart, { passive: true });
-  window.addEventListener('touchmove', handleMove, { passive: true });
-  window.addEventListener('touchend', handleEnd);
+  canvas.addEventListener('wheel', (e) => {
+    if (!userPhoto) return;
+    e.preventDefault();
+    const zoomDelta = e.deltaY < 0 ? 0.08 : -0.08;
+    transform.zoom = Math.max(0.4, Math.min(3.5, transform.zoom + zoomDelta));
+    renderPoster();
+  }, { passive: false });
 
   // Initial draw
   renderPoster();
