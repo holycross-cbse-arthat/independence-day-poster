@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Independence Day Poster Generator</title>
+  <!-- Google Fonts: Poppins & Anek Malayalam -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anek+Malayalam:wght@500;700;800&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: 'Poppins', 'Anek Malayalam', sans-serif;
+      background-color: #f8fafc;
+      color: #1e293b;
+      padding: 12px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .container {
+      max-width: 540px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      align-items: center;
+    }
+
+    /* 1. Top Canvas Preview Area */
+    .preview-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      gap: 6px;
+    }
+
+    canvas {
+      max-width: 100%;
+      width: 100%;
+      height: auto;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+      background-color: #ffffff;
+      touch-action: none; /* Allows direct touch dragging on mobile */
+    }
+
+    .hint-text {
+      font-size: 0.75rem;
+      color: #94a3b8;
+      text-align: center;
+    }
+
+    /* Card Panels for Controls */
+    .card {
+      background: #ffffff;
+      width: 100%;
+      padding: 16px;
+      border-radius: 16px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+      border: 1px solid #e2e8f0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .form-group label {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #475569;
+    }
+
+    input[type="text"],
+    input[type="file"] {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      background: #f8fafc;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input[type="text"]:focus {
+      border-color: #ea580c;
+      background: #ffffff;
+    }
+
+    /* Slider Grid */
+    .sliders-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    @media (max-width: 400px) {
+      .sliders-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 6px;
+      accent-color: #ea580c;
+      cursor: pointer;
+    }
+
+    /* Download Button */
+    .btn-download {
+      background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
+      color: #ffffff;
+      border: none;
+      padding: 14px 20px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 1rem;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(234, 88, 12, 0.35);
+      transition: transform 0.1s ease, box-shadow 0.2s ease;
+      width: 100%;
+    }
+
+    .btn-download:active {
+      transform: scale(0.98);
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- 1. POSTER PREVIEW PLACED FIRST -->
+  <div class="preview-container">
+    <canvas id="posterCanvas" width="1080" height="1080"></canvas>
+    <span class="hint-text">Tip: You can drag/pan the photo directly on screen with your finger.</span>
+  </div>
+
+  <!-- 2. INPUTS SECTION -->
+  <div class="card">
+    <div class="form-group">
+      <label for="photoInput">1. Upload Photo (ഫോട്ടോ ചേർക്കുക)</label>
+      <input type="file" id="photoInput" accept="image/*">
+    </div>
+
+    <div class="form-group">
+      <label for="nameInput">2. Student / Teacher Name (പേര്)</label>
+      <input type="text" id="nameInput" placeholder="Enter Full Name" value="John Doe">
+    </div>
+
+    <div class="form-group">
+      <label for="schoolInput">3. Class / School Name (ക്ലാസ്സ് / സ്കൂൾ)</label>
+      <input type="text" id="schoolInput" placeholder="Enter Class & School" value="Holy Cross CBSE School">
+    </div>
+  </div>
+
+  <!-- 3. SLIDERS & DOWNLOAD -->
+  <div class="card">
+    <div class="sliders-grid">
+      <div class="form-group">
+        <label for="zoomSlider">Zoom</label>
+        <input type="range" id="zoomSlider" min="50" max="250" value="100">
+      </div>
+
+      <div class="form-group">
+        <label for="rotateSlider">Rotate</label>
+        <input type="range" id="rotateSlider" min="-180" max="180" value="0">
+      </div>
+
+      <div class="form-group">
+        <label for="panXSlider">Pan Left / Right</label>
+        <input type="range" id="panXSlider" min="-250" max="250" value="0">
+      </div>
+
+      <div class="form-group">
+        <label for="panYSlider">Pan Up / Down</label>
+        <input type="range" id="panYSlider" min="-250" max="250" value="0">
+      </div>
+    </div>
+
+    <button class="btn-download" id="downloadBtn">Download Poster (HD)</button>
+  </div>
+
+</div>
+
+<script>
+  /**
+   * Independence Day Instagram Poster Generator (1080x1080)
+   */
+
+  const CANVAS_SIZE = 1080;
+  const canvas = document.getElementById('posterCanvas');
+  const ctx = canvas.getContext('2d');
+
+  // DOM Elements
+  const photoInput = document.getElementById('photoInput');
+  const nameInput = document.getElementById('nameInput');
+  const schoolInput = document.getElementById('schoolInput');
+  const zoomSlider = document.getElementById('zoomSlider');
+  const rotateSlider = document.getElementById('rotateSlider');
+  const panXSlider = document.getElementById('panXSlider');
+  const panYSlider = document.getElementById('panYSlider');
+  const downloadBtn = document.getElementById('downloadBtn');
+
+  // State
+  let templateImage = new Image();
+  let userPhoto = null;
+  let isTemplateLoaded = false;
+
+  // Set default template image path
+  templateImage.src = 'template.png';
+  templateImage.onload = () => {
+    isTemplateLoaded = true;
+    renderPoster();
+  };
+  templateImage.onerror = () => {
+    isTemplateLoaded = false;
+    renderPoster();
+  };
+
+  // --- MAIN RENDER FUNCTION ---
+  function renderPoster() {
+    canvas.width = CANVAS_SIZE;
+    canvas.height = CANVAS_SIZE;
+
+    ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+
+    // 1. Draw Base Template Image
+    if (isTemplateLoaded && templateImage.naturalWidth !== 0) {
+      ctx.drawImage(templateImage, 0, 0, CANVAS_SIZE, CANVAS_SIZE);
+    } else {
+      // Soft gradient fallback
+      const bgGrad = ctx.createLinearGradient(0, 0, 0, CANVAS_SIZE);
+      bgGrad.addColorStop(0, '#fde047');
+      bgGrad.addColorStop(1, '#ea580c');
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+    }
+
+    // 2. Circular Photo Placement Coordinates
+    const circleX = 860;
+    const circleY = 400;
+    const radius = 170;
+
+    // Draw user photo with mask, zoom, rotate, and panning
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(circleX, circleY, radius, 0, Math.PI * 2);
+    ctx.clip(); // Mask inside circle
+
+    if (userPhoto) {
+      const zoom = parseFloat(zoomSlider ? zoomSlider.value : 100) / 100;
+      const rotate = ((parseFloat(rotateSlider ? rotateSlider.value : 0)) * Math.PI) / 180;
+      const panX = parseFloat(panXSlider ? panXSlider.value : 0);
+      const panY = parseFloat(panYSlider ? panYSlider.value : 0);
+
+      ctx.translate(circleX, circleY);
+      ctx.rotate(rotate);
+      ctx.translate(panX, panY);
+
+      const baseScale = Math.max((radius * 2) / userPhoto.width, (radius * 2) / userPhoto.height);
+      const scale = baseScale * zoom;
+      const drawW = userPhoto.width * scale;
+      const drawH = userPhoto.height * scale;
+
+      ctx.drawImage(userPhoto, -drawW / 2, -drawH / 2, drawW, drawH);
+    } else {
+      // Default placeholder silhouette
+      ctx.fillStyle = '#cbd5e1';
+      ctx.fillRect(circleX - radius, circleY - radius, radius * 2, radius * 2);
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(circleX, circleY - 25, 50, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(circleX, circleY + 120, 95, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+
+    // 3. Draw Student Name and School Details Card
+    const studentName = nameInput && nameInput.value.trim() ? nameInput.value.trim() : 'Student Name';
+    const schoolDetails = schoolInput && schoolInput.value.trim() ? schoolInput.value.trim() : 'Holy Cross CBSE School';
+
+    // Info Card Box
+    const boxX = 660;
+    const boxY = 600;
+    const boxW = 400;
+    const boxH = 95;
+    const boxR = 14;
+
+    ctx.save();
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.25)';
+    ctx.shadowBlur = 12;
+    ctx.shadowOffsetY = 4;
+    ctx.fillStyle = '#ffffff';
+
+    ctx.beginPath();
+    ctx.moveTo(boxX + boxR, boxY);
+    ctx.lineTo(boxX + boxW - boxR, boxY);
+    ctx.quadraticCurveTo(boxX + boxW, boxY, boxX + boxW, boxY + boxR);
+    ctx.lineTo(boxX + boxW, boxY + boxH - boxR);
+    ctx.quadraticCurveTo(boxX + boxW, boxY + boxH, boxX + boxW - boxR, boxY + boxH);
+    ctx.lineTo(boxX + boxR, boxY + boxH);
+    ctx.quadraticCurveTo(boxX, boxY + boxH, boxX, boxY + boxH - boxR);
+    ctx.lineTo(boxX, boxY + boxR);
+    ctx.quadraticCurveTo(boxX, boxY, boxX + boxR, boxY);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+
+    // Text inside Box
+    ctx.textAlign = 'center';
+    const textCenterX = boxX + (boxW / 2);
+
+    // Student Name
+    ctx.fillStyle = '#0f172a';
+    ctx.font = 'bold 28px "Poppins", "Anek Malayalam", sans-serif';
+    ctx.fillText(studentName, textCenterX, boxY + 40);
+
+    // Class / School Name
+    ctx.fillStyle = '#047857'; // Forest Green
+    ctx.font = '600 20px "Poppins", "Anek Malayalam", sans-serif';
+    ctx.fillText(schoolDetails, textCenterX, boxY + 75);
+  }
+
+  // --- EVENT LISTENERS ---
+
+  // Photo Upload
+  if (photoInput) {
+    photoInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          userPhoto = new Image();
+          userPhoto.onload = renderPoster;
+          userPhoto.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  }
+
+  // Live inputs update
+  [nameInput, schoolInput, zoomSlider, rotateSlider, panXSlider, panYSlider].forEach((elem) => {
+    if (elem) elem.addEventListener('input', renderPoster);
+  });
+
+  // Fonts ready listener
+  if (document.fonts) {
+    document.fonts.ready.then(renderPoster);
+  }
+
+  // Download Action
+  if (downloadBtn) {
+    downloadBtn.addEventListener('click', () => {
+      const link = document.createElement('a');
+      const filename = `${(nameInput && nameInput.value.trim()) || 'student'}-independence-day.png`;
+      link.download = filename;
+      link.href = canvas.toDataURL('image/png', 1.0);
+      link.click();
+    });
+  }
+
+  // --- MOBILE TOUCH / MOUSE DRAG SUPPORT ---
+  let isDragging = false;
+  let startX = 0;
+  let startY = 0;
+
+  function handleStart(e) {
+    if (!userPhoto) return;
+    isDragging = true;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    startX = clientX - parseFloat(panXSlider.value);
+    startY = clientY - parseFloat(panYSlider.value);
+  }
+
+  function handleMove(e) {
+    if (!isDragging) return;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    
+    let newX = clientX - startX;
+    let newY = clientY - startY;
+
+    // Clamp range
+    newX = Math.max(-250, Math.min(250, newX));
+    newY = Math.max(-250, Math.min(250, newY));
+
+    panXSlider.value = newX;
+    panYSlider.value = newY;
+    renderPoster();
+  }
+
+  function handleEnd() {
+    isDragging = false;
+  }
+
+  canvas.addEventListener('mousedown', handleStart);
+  window.addEventListener('mousemove', handleMove);
+  window.addEventListener('mouseup', handleEnd);
+
+  canvas.addEventListener('touchstart', handleStart, { passive: true });
+  window.addEventListener('touchmove', handleMove, { passive: true });
+  window.addEventListener('touchend', handleEnd);
+
+  // Initial draw
+  renderPoster();
+</script>
+</body>
+</html>
